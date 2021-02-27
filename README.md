@@ -1,4 +1,4 @@
-# unifi-events 
+# unifi-axios-events 
 
 [![License][mit-badge]][mit-url]
 
@@ -11,7 +11,7 @@ unifi-axios-events is a Node.js module that allows you to listen for events from
 
 ## Installation
 
-`$ npm install https://github.com/worldwidewoogie/unifi-axios-events.git`
+`$ npm install unifi-axios-events`
 
 ## Example
 
