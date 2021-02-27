@@ -1,0 +1,39 @@
+{
+  "name": "unifi-axios-events",
+  "description": "listen for events from and call methods on the UniFi API (Ubiquiti Wifi).",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "woogie <https://github.com/worldwidewoogie>",
+  "contributors": [
+    "woogie <https://github.com/worldwidewoogie>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/worldwidewoogie/unifi-axios-events.git"
+  },
+  "bugs": {
+    "url": "https://github.com/worldwidewoogie/unifi-axios-events/issues"
+  },
+  "homepage": "https://github.com/worldwidewoogie/unifi-axios-events#readme",
+  "main": "index.js",
+  "engines": {
+    "node": ">=6.0.0"
+  },
+  "keywords": [
+    "unifi",
+    "ubiquiti",
+    "ubnt",
+    "wifi",
+    "api",
+    "events"
+  ],
+  "dependencies": {
+    "axios": "^0.21.1",
+    "axios-cookiejar-support": "^1.0.1",
+    "eventemitter2": "^6.4.4",
+    "https": "^1.0.0",
+    "tough-cookie": "^4.0.0",
+    "url": "^0.11.0",
+    "ws": "^7.4.3"
+  }
+}
