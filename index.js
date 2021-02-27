@@ -47,13 +47,22 @@ module.exports = class unifiEvents extends EventEmitter {
                 this.instance.get(this.controller).then(res => {
                     if (res.headers['x-csrf-token']) {
                         this.xcsrftoken = res.headers['x-csrf-token']
-                        this.instance.defaults.headers.delete['x-csrf-token'] = this.xcsrftoken
-                        this.instance.defaults.headers.post['x-csrf-token'] = this.xcsrftoken
-                        this.instance.defaults.headers.put['x-csrf-token'] = this.xcsrftoken
+                        this.instance.defaults.headers.delete['X-CSRF-Token'] = this.xcsrftoken
+                        this.instance.defaults.headers.get['X-CSRF-Token'] = this.xcsrftoken
+                        this.instance.defaults.headers.post['X-CSRF-Token'] = this.xcsrftoken
+                        this.instance.defaults.headers.put['X-CSRF-Token'] = this.xcsrftoken
                         this.unifios = true
                     } else {
                         this.unifios = false
                     }
+                    // this.instance.interceptors.request.use(request => {
+                    //     console.dir({ 'Starting Request': request }, { depth: null })
+                    //     return request
+                    // })
+                    // this.instance.interceptors.response.use(response => {
+                    //     console.dir({ 'Response:': response }, { depth: null })
+                    //     return response
+                    // })
                     this.isInit = true
                     this.connect()
                     resolve(true)
@@ -124,12 +133,10 @@ module.exports = class unifiEvents extends EventEmitter {
                 })
 
                 const pingpong = setInterval(() => {
-                    //console.dir("sending ping")
                     this.ws.send('ping')
                 }, 15000)
 
                 this.ws.on('open', () => {
-                    //console.dir(this.ws, { depth: null })
                     this.isReconnecting = false
                     this.emit('ctrl.connect')
                 })
@@ -247,7 +254,7 @@ module.exports = class unifiEvents extends EventEmitter {
     post(path, body) {
         return new Promise((resolve, reject) => {
             this._ensureLoggedIn().then(() => {
-                this.instance.post(this._url(path), { body }).then(response => {
+                this.instance.post(this._url(path), body).then(response => {
                     resolve(response.data)
                 }).catch(error => {
                     reject(error)
@@ -261,7 +268,7 @@ module.exports = class unifiEvents extends EventEmitter {
     put(path, body) {
         return new Promise((resolve, reject) => {
             this._ensureLoggedIn().then(() => {
-                this.instance.put(this._url(path), { body }).then(response => {
+                this.instance.put(this._url(path), body).then(response => {
                     resolve(response.data)
                 }).catch(error => {
                     reject(error)
