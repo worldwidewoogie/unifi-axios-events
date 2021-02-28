@@ -23,7 +23,6 @@ module.exports = class unifiEvents extends EventEmitter {
         this.opts.password = this.opts.password || 'ubnt'
         this.opts.site = this.opts.site || 'default'
         this.opts.insecure = this.opts.insecure || false
-        this.opts.listen = this.opts.listen || true
 
         this.controller = url.parse(`https://${opts.host}:${opts.port}`)
 
@@ -44,13 +43,10 @@ module.exports = class unifiEvents extends EventEmitter {
                     withCredentials: true,
                     httpsAgent: new https.Agent({ rejectUnauthorized: false, requestCert: true, keepAlive: true })
                 })
-                this.instance.get(this.controller).then(res => {
-                    if (res.headers['x-csrf-token']) {
-                        this.xcsrftoken = res.headers['x-csrf-token']
-                        this.instance.defaults.headers.delete['X-CSRF-Token'] = this.xcsrftoken
-                        this.instance.defaults.headers.get['X-CSRF-Token'] = this.xcsrftoken
-                        this.instance.defaults.headers.post['X-CSRF-Token'] = this.xcsrftoken
-                        this.instance.defaults.headers.put['X-CSRF-Token'] = this.xcsrftoken
+                this.instance.get(this.controller).then(response => {
+                    if (response.headers['x-csrf-token']) {
+                        this.xcsrftoken = response.headers['x-csrf-token']
+                        this.instance.defaults.headers.common['X-CSRF-Token'] = this.xcsrftoken
                         this.unifios = true
                     } else {
                         this.unifios = false
@@ -64,8 +60,13 @@ module.exports = class unifiEvents extends EventEmitter {
                     //     return response
                     // })
                     this.isInit = true
-                    this.connect()
-                    resolve(true)
+                    this.connect().then((response) => {
+                        resolve(true)
+                    }).catch(error => {
+                        reject(error)
+                    })
+                }).catch(error => {
+                    reject(error)
                 })
             }
         })
@@ -77,6 +78,8 @@ module.exports = class unifiEvents extends EventEmitter {
             this._login(reconnect).then(() => {
                 this._listen()
                 resolve(true)
+            }).catch(error => {
+                reject(error)
             })
         })
     }
@@ -100,76 +103,67 @@ module.exports = class unifiEvents extends EventEmitter {
             }).then(() => {
                 resolve(true)
             }).catch(error => {
-                let message = ''
-                if (error.response) {
-                    message = error.response.status + ' ' + error.response.statusText
-                } else {
-                    message = error
-                }
                 if (!reconnect) {
-                    this._reconnect()
+                    this._reconnect();
                 }
             })
         })
     }
 
     _listen() {
-        if (this.opts.listen) {
+        this.cookieJar.getCookieString(this.controller.href).then(cookies => {
 
-            this.cookieJar.getCookieString(this.controller.href).then(cookies => {
+            let eventsUrl = `wss://${this.controller.host}/wss/s/${this.opts.site}/events`
 
-                let eventsUrl = `wss://${this.controller.host}/wss/s/${this.opts.site}/events`
+            if (this.unifios) {
+                eventsUrl = `wss://${this.controller.host}/proxy/network/wss/s/${this.opts.site}/events`
+            }
 
-                if (this.unifios) {
-                    eventsUrl = `wss://${this.controller.host}/proxy/network/wss/s/${this.opts.site}/events`
+            this.ws = new WebSocket(eventsUrl, {
+                perMessageDeflate: false,
+                rejectUnauthorized: !this.opts.insecure,
+                headers: {
+                    Cookie: cookies
                 }
-
-                this.ws = new WebSocket(eventsUrl, {
-                    perMessageDeflate: false,
-                    rejectUnauthorized: !this.opts.insecure,
-                    headers: {
-                        Cookie: cookies
-                    }
-                })
-
-                const pingpong = setInterval(() => {
-                    this.ws.send('ping')
-                }, 15000)
-
-                this.ws.on('open', () => {
-                    this.isReconnecting = false
-                    this.emit('ctrl.connect')
-                })
-
-                this.ws.on('message', data => {
-                    if (data === 'pong') {
-                        return
-                    }
-                    try {
-                        const parsed = JSON.parse(data)
-                        if ('data' in parsed && Array.isArray(parsed.data)) {
-                            parsed.data.forEach(entry => {
-                                this._event(entry)
-                            })
-                        }
-                    } catch (err) {
-                        this.emit('ctrl.error', err)
-                    }
-                })
-
-                this.ws.on('close', () => {
-                    this.emit('ctrl.close')
-                    clearInterval(pingpong)
-                    this._reconnect()
-                })
-
-                this.ws.on('error', err => {
-                    this.emit('ctrl.error', err)
-                    clearInterval(pingpong)
-                    this._reconnect()
-                })
             })
-        }
+
+            const pingpong = setInterval(() => {
+                this.ws.send('ping')
+            }, 15000)
+
+            this.ws.on('open', () => {
+                this.isReconnecting = false
+                this.emit('ctrl.connect')
+            })
+
+            this.ws.on('message', data => {
+                if (data === 'pong') {
+                    return
+                }
+                try {
+                    const parsed = JSON.parse(data)
+                    if ('data' in parsed && Array.isArray(parsed.data)) {
+                        parsed.data.forEach(entry => {
+                            this._event(entry)
+                        })
+                    }
+                } catch (err) {
+                    this.emit('ctrl.error', err)
+                }
+            })
+
+            this.ws.on('close', () => {
+                this.emit('ctrl.close')
+                clearInterval(pingpong)
+                this._reconnect()
+            })
+
+            this.ws.on('error', err => {
+                this.emit('ctrl.error', err)
+                clearInterval(pingpong)
+                this._reconnect()
+            })
+        })
     }
 
     _reconnect() {
@@ -178,7 +172,9 @@ module.exports = class unifiEvents extends EventEmitter {
             setTimeout(() => {
                 this.emit('ctrl.reconnect')
                 this.isReconnecting = false
-                this.connect(true)
+                this.connect(true).catch(error => {
+                    console.dir('_reconnect() encountered an error')
+                })
             }, this.autoReconnectInterval)
         }
     }
