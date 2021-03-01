@@ -91,9 +91,13 @@ unifi.on('*.connected', function (data) {
 
 ## Methods
 
+#### init()
+
+Initialize the connection to the UniFi controller. Must be called after the constructor.
+
 #### connect()
 
-Connect to the UniFi controller. Is called in the constructor, so normally you don't need to call it (except if you want 
+Connect to the UniFi controller. Is called by init(), so normally you don't need to call it (except if you want 
 to re-establish a connection that was closed before).
 
 #### close()
